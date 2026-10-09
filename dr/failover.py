@@ -35,13 +35,85 @@ LOG = pathlib.Path("reports/failover-events.jsonl")
 
 
 def emit(**kw):
-    """TODO: append 1 dòng JSONL có ts + iso vào LOG, và print ra stdout."""
-    raise NotImplementedError
+    """Append 1 dòng JSONL có ts + iso vào LOG, và print ra stdout."""
+    kw["ts"] = time.time()
+    kw["iso"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    line = json.dumps(kw)
+    print(line)
+    with open(LOG, "a") as f:
+        f.write(line + "\n")
+
+
+def state_of(region: str) -> dict:
+    """Lấy trạng thái của region qua /v1/state."""
+    try:
+        resp = httpx.get(f"{URL[region]}/v1/state", timeout=5.0)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        pass
+    return {}
+
+
+def rpo_of(target: str) -> dict:
+    """Tính RPO: so sánh primary DB với restored DB."""
+    primary_db = pathlib.Path(f"state/region-a/vectors.sqlite")
+    restored_db = pathlib.Path(f"state/region-{target}/vectors.sqlite")
+    return snapshot.rpo(primary_db, restored_db)
 
 
 def failover(target: str, backend: str, wait: float) -> dict:
-    """TODO: 5 bước ở trên, đúng thứ tự."""
-    raise NotImplementedError
+    """5 bước ở trên, đúng thứ tự."""
+    emit(step="1_verify_target", target=target)
+    target_state = state_of(target)
+
+    # Step 2: restore snapshot và log với RPO info trong cùng 1 dòng
+    restore_meta = snapshot.get(target, backend)
+    rpo_info = rpo_of(target)
+    emit(
+        step="2_restore_snapshot",
+        target=target,
+        rpo_seconds=rpo_info.get("rpo_seconds"),
+        docs_lost=rpo_info.get("docs_lost"),
+        embed_model_version=restore_meta.get("embed_model_version"),
+    )
+
+    emit(step="3_scale_pool", target=target)
+    pool_file = pathlib.Path(f"state/region-{target}/pool_state")
+    pool_file.write_text("full")
+
+    emit(step="4_wait_ready", target=target, timeout_s=wait)
+    wait_start = time.time()
+    ready = False
+    while time.time() - wait_start < wait:
+        try:
+            resp = httpx.get(f"{URL[target]}/readyz", timeout=5.0)
+            if resp.status_code == 200:
+                waited_s = round(time.time() - wait_start, 2)
+                emit(step="4_wait_ready", target=target, waited_s=waited_s, status="ready")
+                ready = True
+                break
+        except Exception:
+            pass
+        time.sleep(1.0)
+
+    if not ready:
+        emit(step="4_wait_ready", target=target, status="timeout")
+        return {"ok": False, "step": "4_wait_ready", "reason": "timeout"}
+
+    emit(step="5_dns_cutover", target=target)
+    active_file = pathlib.Path("edge/active_region")
+    active_file.write_text(target)
+
+    return {
+        "ok": True,
+        "target": target,
+        "rpo_seconds": rpo_info.get("rpo_seconds"),
+        "docs_lost": rpo_info.get("docs_lost"),
+        "embed_model_version": restore_meta.get("embed_model_version"),
+        "vector_count": target_state.get("count", 0),
+        "weights_loaded": target_state.get("weights", False),
+    }
 
 
 if __name__ == "__main__":

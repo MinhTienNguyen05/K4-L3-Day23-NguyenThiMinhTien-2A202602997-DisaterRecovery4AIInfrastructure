@@ -1,0 +1,11 @@
+{"ts": 1791513322.113347, "iso": "2026-10-09T02:35:22", "action": "kill", "region": "a", "mode": "netblock", "backend": "bare", "mock": true, "other_region": "b", "other_alive": true, "forced_both": false, "note": "t_outage_start \u2014 moc 0 cua RTO clock"}
+{"ts": 1791513394.1655629, "iso": "2026-10-09T02:36:34", "action": "restore", "region": "a", "method": "SIGCONT", "pid": 38108}
+{"ts": 1791513459.806237, "iso": "2026-10-09T02:37:39", "action": "kill", "region": "a", "mode": "netblock", "backend": "bare", "mock": true, "other_region": "b", "other_alive": true, "forced_both": false, "note": "t_outage_start \u2014 moc 0 cua RTO clock"}
+{"ts": 1791513594.77926, "iso": "2026-10-09T02:39:54", "action": "restore", "region": "a", "method": "SIGCONT", "pid": 38108}
+{"ts": 1791513650.0800881, "iso": "2026-10-09T02:40:50", "action": "kill", "region": "a", "mode": "netblock", "backend": "bare", "mock": true, "other_region": "b", "other_alive": true, "forced_both": false, "note": "t_outage_start \u2014 moc 0 cua RTO clock"}
+{"ts": 1791514028.336448, "iso": "2026-10-09T02:47:08", "action": "restore", "region": "a", "method": "SIGCONT", "pid": 38108}
+{"ts": 1791514060.992598, "iso": "2026-10-09T02:47:40", "action": "kill", "region": "a", "mode": "netblock", "backend": "bare", "mock": true, "other_region": "b", "other_alive": true, "forced_both": false, "note": "t_outage_start \u2014 moc 0 cua RTO clock"}
+{"ts": 1791514227.153027, "iso": "2026-10-09T02:50:27", "action": "restore", "region": "a", "method": "SIGCONT", "pid": 38108}
+{"ts": 1791514265.917102, "iso": "2026-10-09T02:51:05", "action": "kill", "region": "a", "mode": "netblock", "backend": "bare", "mock": true, "other_region": "b", "other_alive": true, "forced_both": false, "note": "t_outage_start \u2014 moc 0 cua RTO clock"}
+{"ts": 1791514454.4267368, "iso": "2026-10-09T02:54:14", "action": "restore", "region": "a", "method": "SIGCONT", "pid": 38108}
+{"ts": 1791514493.0701709, "iso": "2026-10-09T02:54:53", "action": "kill", "region": "a", "mode": "netblock", "backend": "bare", "mock": true, "other_region": "b", "other_alive": true, "forced_both": false, "note": "t_outage_start \u2014 moc 0 cua RTO clock"}

@@ -29,13 +29,66 @@ URL = {"a": "http://127.0.0.1:8001", "b": "http://127.0.0.1:8002"}
 
 
 def probe(region: str, timeout: float) -> tuple[bool, str]:
-    """TODO: trả về (ready, reason). Timeout PHẢI có — netblock làm request treo mãi."""
-    raise NotImplementedError
+    """Trả về (ready, reason). Timeout PHẢI có — netblock làm request treo mãi."""
+    try:
+        resp = httpx.get(f"{URL[region]}/readyz", timeout=timeout)
+        if resp.status_code == 200:
+            return True, "ready"
+        else:
+            return False, f"status={resp.status_code}"
+    except httpx.TimeoutException:
+        return False, "timeout"
+    except httpx.ConnectError:
+        return False, "connection_error"
+    except Exception as e:
+        return False, f"error:{type(e).__name__}"
 
 
 def run(interval: float, timeout: float, threshold: int, duration: float, out: pathlib.Path):
-    """TODO: vòng lặp poll + phát hiện transition + ghi JSONL."""
-    raise NotImplementedError
+    """Vòng lặp poll + phát hiện transition + ghi JSONL."""
+    # Track trạng thái hiện tại của mỗi region
+    states = {"a": "HEALTHY", "b": "HEALTHY"}
+    # Track số lần fail liên tiếp
+    consecutive_fails = {"a": 0, "b": 0}
+
+    out.touch()
+    start = time.time()
+
+    while time.time() - start < duration:
+        for region in ["a", "b"]:
+            ready, reason = probe(region, timeout)
+
+            if ready:
+                consecutive_fails[region] = 0
+                new_state = "HEALTHY"
+            else:
+                consecutive_fails[region] += 1
+                # Chỉ chuyển sang UNHEALTHY khi đủ threshold lần fail liên tiếp
+                if consecutive_fails[region] >= threshold:
+                    new_state = "UNHEALTHY"
+                else:
+                    new_state = states[region]
+
+            # Chỉ ghi log khi trạng thái THỰC SỰ thay đổi
+            if new_state != states[region]:
+                event = {
+                    "ts": time.time(),
+                    "iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "event": "state_change",
+                    "region": region,
+                    "from": states[region],
+                    "to": new_state,
+                    "reason": reason,
+                    "consecutive_fails": consecutive_fails[region],
+                    "interval_s": interval,
+                    "threshold": threshold,
+                }
+                states[region] = new_state
+
+                with open(out, "a") as f:
+                    f.write(json.dumps(event) + "\n")
+
+        time.sleep(interval)
 
 
 if __name__ == "__main__":
